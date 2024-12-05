@@ -1,0 +1,76 @@
+```markdown
+# Kubernetes Cluster Upgrade to v1.31.3
+
+This repository contains instructions and scripts to upgrade a Kubernetes cluster to version `v1.31.3` on Ubuntu 22.04 LTS (Jammy Jellyfish) using `kubeadm`.
+
+## Prerequisites
+
+Before starting, ensure the following:
+- You have administrative access to all nodes in the cluster.
+- A full backup of your cluster data and configurations is created.
+- The cluster is currently managed by `kubeadm`.
+
+## Steps to Upgrade
+
+### 1. Update `kubeadm`
+
+On the control plane node:
+```bash
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /usr/share/keyrings/k8s-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/k8s-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update
+sudo apt-get install -y kubeadm=1.31.3-00
+```
+
+Verify the installed version:
+```bash
+kubeadm version
+```
+
+### 2. Plan the Upgrade
+
+```bash
+sudo kubeadm upgrade plan
+```
+
+### 3. Apply the Upgrade
+
+Upgrade the control plane:
+```bash
+sudo kubeadm upgrade apply v1.31.3
+```
+
+### 4. Update `kubelet` and `kubectl`
+
+On the control plane node:
+```bash
+sudo apt-get install -y kubelet=1.31.3-00 kubectl=1.31.3-00
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+```
+
+Repeat these steps for all worker nodes in the cluster.
+
+### 5. Upgrade Worker Nodes
+
+SSH into each worker node and repeat steps:
+1. Update `kubeadm`.
+2. Run:
+   ```bash
+   sudo kubeadm upgrade node
+   ```
+3. Update `kubelet` and `kubectl`.
+
+## Troubleshooting
+
+If you encounter issues, check the Kubernetes [official documentation](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/) or the logs of the `kubelet` service:
+```bash
+sudo journalctl -xeu kubelet
+```
+
+## References
+
+- [Kubernetes Upgrade Guide](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/)
+- [Kubernetes Packages Repository](https://pkgs.k8s.io/)
